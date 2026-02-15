@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Heads Up - The ultimate charades-style guessing game">
+    
+    <title>Heads Up - Guessing Game</title>
+    
+    <!-- Oat.ink CSS Framework -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@oatmealine/oatink@latest/dist/oat.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-512.png">
+</head>
+<body>
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen active">
+        <div class="container">
+            <div class="hero">
+                <h1 class="logo">🎭 Heads Up!</h1>
+                <p class="tagline">Hold your phone to your forehead and guess the word</p>
+            </div>
+            
+            <div class="categories">
+                <h2>Choose a Category</h2>
+                <div id="category-list" class="category-grid"></div>
+            </div>
+            
+            <div class="instructions">
+                <h3>How to Play</h3>
+                <div class="instruction-cards">
+                    <div class="instruction-card">
+                        <span class="icon">📱</span>
+                        <p>Hold phone to your forehead</p>
+                    </div>
+                    <div class="instruction-card">
+                        <span class="icon">👥</span>
+                        <p>Friends give you clues</p>
+                    </div>
+                    <div class="instruction-card">
+                        <span class="icon">⬇️</span>
+                        <p>Tilt down when correct</p>
+                    </div>
+                    <div class="instruction-card">
+                        <span class="icon">⬆️</span>
+                        <p>Tilt up to skip</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+        <div class="game-container">
+            <div class="game-header">
+                <div class="timer-container">
+                    <div id="timer" class="timer">60</div>
+                    <div class="timer-bar">
+                        <div id="timer-progress" class="timer-progress"></div>
+                    </div>
+                </div>
+                <div id="score" class="score">Score: 0</div>
+            </div>
+            
+            <div class="card-container">
+                <div id="current-card" class="card">
+                    <div class="card-word"></div>
+                </div>
+            </div>
+            
+            <div class="tilt-indicators">
+                <div class="tilt-indicator tilt-up">
+                    <span class="arrow">⬆️</span>
+                    <span>Skip</span>
+                </div>
+                <div class="tilt-indicator tilt-down">
+                    <span class="arrow">⬇️</span>
+                    <span>Correct</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="results-screen" class="screen">
+        <div class="container">
+            <div class="results-container">
+                <h1 class="results-title">Time's Up! 🎉</h1>
+                
+                <div class="final-score-container">
+                    <div class="final-score-label">Final Score</div>
+                    <div id="final-score" class="final-score">0</div>
+                    <div id="final-category" class="final-category"></div>
+                </div>
+                
+                <div id="results-list" class="results-list"></div>
+                
+                <div class="results-actions">
+                    <button id="play-again" class="btn btn-primary btn-large">
+                        🔄 Play Again
+                    </button>
+                    <button id="change-category" class="btn btn-secondary btn-large">
+                        🎯 Change Category
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Overlay -->
+    <div id="feedback" class="feedback"></div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
