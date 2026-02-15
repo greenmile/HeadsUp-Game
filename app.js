@@ -7,7 +7,8 @@ let gameState = {
     timeLeft: 60,
     isPlaying: false,
     timerInterval: null,
-    results: []
+    results: [],
+    debugMode: false
 };
 
 // ===== DOM Elements =====
@@ -29,7 +30,9 @@ const elements = {
     finalCategory: document.getElementById('final-category'),
     resultsList: document.getElementById('results-list'),
     playAgain: document.getElementById('play-again'),
-    changeCategory: document.getElementById('change-category')
+    changeCategory: document.getElementById('change-category'),
+    rotateOverlay: document.getElementById('rotate-overlay'),
+    debugInfo: document.getElementById('debug-info')
 };
 
 // ===== Initialization =====
@@ -37,6 +40,26 @@ function init() {
     renderCategories();
     setupEventListeners();
     registerServiceWorker();
+    checkOrientation();
+
+    // Listen for orientation changes
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+}
+
+// ===== Orientation Management =====
+function checkOrientation() {
+    const isLandscape = window.innerWidth > window.innerHeight;
+
+    if (isLandscape) {
+        elements.rotateOverlay.classList.remove('active');
+        if (gameState.isPlaying && gameState.timeLeft > 0) {
+            // Resume if paused (logic to be added if needed)
+        }
+    } else {
+        elements.rotateOverlay.classList.add('active');
+        // Optional: Pause game if in portrait
+    }
 }
 
 // ===== Render Categories =====
@@ -72,6 +95,21 @@ function setupEventListeners() {
         showScreen('start');
     });
 
+    // Debug toggle (Triple tap score)
+    let tapCount = 0;
+    let tapTimer;
+    elements.score.addEventListener('click', () => {
+        tapCount++;
+        clearTimeout(tapTimer);
+        tapTimer = setTimeout(() => tapCount = 0, 500);
+
+        if (tapCount === 3) {
+            gameState.debugMode = !gameState.debugMode;
+            elements.debugInfo.style.display = gameState.debugMode ? 'block' : 'none';
+            tapCount = 0;
+        }
+    });
+
     // Device orientation for tilt detection
     if (window.DeviceOrientationEvent) {
         window.addEventListener('deviceorientation', handleTilt);
@@ -98,13 +136,19 @@ function startGame(categoryId) {
         timeLeft: 60,
         isPlaying: true,
         timerInterval: null,
-        results: []
+        results: [],
+        debugMode: gameState.debugMode
     };
 
     // Update UI
     updateScore();
     showCard();
     showScreen('game');
+
+    // Request full screen if available
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(e => console.log(e));
+    }
 
     // Request device orientation permission on iOS
     if (typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -126,6 +170,10 @@ function startTimer() {
     updateTimerProgress();
 
     gameState.timerInterval = setInterval(() => {
+        if (document.hidden || elements.rotateOverlay.classList.contains('active')) {
+            return; // Don't count down if backgrounded or wrong orientation
+        }
+
         gameState.timeLeft--;
         elements.timer.textContent = gameState.timeLeft;
         updateTimerProgress();
@@ -162,42 +210,96 @@ function showCard() {
 
     const word = gameState.cards[gameState.currentCardIndex];
     elements.cardWord.textContent = word;
-    elements.currentCard.classList.add('flip');
 
-    setTimeout(() => {
-        elements.currentCard.classList.remove('flip');
-    }, 600);
+    // Animation reset
+    elements.currentCard.style.animation = 'none';
+    elements.currentCard.offsetHeight; /* trigger reflow */
+    elements.currentCard.style.animation = 'zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 }
 
-// ===== Tilt Detection =====
+// ===== Tilt Detection (Landscape Logic) =====
 function handleTilt(event) {
     if (!gameState.isPlaying) return;
 
-    const beta = event.beta; // Front-to-back tilt (-180 to 180)
+    // In landscape, we use GAMMA (left/right tilt relative to portrait)
+    // When holding phone to forehead in landscape:
+    // Screen facing forward (neutral): Gamma ≈ -90 (on one side) or 90 (on other)
+    // Tilt Down (Screen to floor): Gamma moves towards 0 (from -90) or 0 (from 90)
+    // Tilt Up (Screen to ceiling): Gamma moves towards -180 (from -90) or 180 (from 90)
 
-    // Update tilt indicators
-    const tiltUp = document.querySelector('.tilt-up');
-    const tiltDown = document.querySelector('.tilt-down');
+    // We need to normalize based on which way the phone is rotated
+    let tilt = event.gamma;
+    const beta = event.beta;
 
-    if (beta > 30) {
-        tiltUp.classList.add('active');
-        tiltDown.classList.remove('active');
-    } else if (beta < -30) {
-        tiltDown.classList.add('active');
-        tiltUp.classList.remove('active');
+    // Debug info
+    if (gameState.debugMode) {
+        elements.debugInfo.innerHTML = `
+            Alpha: ${Math.round(event.alpha)}<br>
+            Beta: ${Math.round(event.beta)}<br>
+            Gamma: ${Math.round(event.gamma)}<br>
+            Orientation: ${window.orientation || 'N/A'}
+        `;
+    }
+
+    // Normalize gamma for both landscape orientations
+    // We assume the user holds the phone roughly vertical (beta approx 0-90)
+
+    // Thresholds
+    const TILT_THRESHOLD = 35; // Degrees to trigger
+    const RESET_THRESHOLD = 15; // Degrees to reset
+
+    // Determine actions based on Gamma
+    // Note: This logic works for standard landscape (home button right)
+    // You might need to invert for landscape-secondary (home button left)
+
+    // Simple state machine for tilt to avoid jitter
+    // 0 = Neutral, 1 = Triggered Down, 2 = Triggered Up
+
+    // Check for "Tilt Down" (Correct)
+    // Gamma usually goes from -90 -> -45 (or 90 -> 45)
+    const isTiltDown = Math.abs(tilt) < (90 - TILT_THRESHOLD);
+
+    // Check for "Tilt Up" (Skip)
+    // Gamma usually goes from -90 -> -135 (or 90 -> 135)
+    // Note: Gamma flips sign at +/- 90 in some browsers, so we check absolute > 90
+    const isTiltUp = Math.abs(tilt) > (90 + TILT_THRESHOLD);
+
+    // Reset zone (Near vertical)
+    const isNeutral = Math.abs(tilt) > (90 - RESET_THRESHOLD) && Math.abs(tilt) < (90 + RESET_THRESHOLD);
+
+    // Visual Feedback
+    const tiltUpIndicator = document.querySelector('.tilt-up');
+    const tiltDownIndicator = document.querySelector('.tilt-down');
+
+    if (isTiltUp) {
+        tiltUpIndicator.classList.add('active');
+        tiltDownIndicator.classList.remove('active');
+    } else if (isTiltDown) {
+        tiltDownIndicator.classList.add('active');
+        tiltUpIndicator.classList.remove('active');
     } else {
-        tiltUp.classList.remove('active');
-        tiltDown.classList.remove('active');
+        tiltUpIndicator.classList.remove('active');
+        tiltDownIndicator.classList.remove('active');
     }
 
-    // Tilt down = Correct
-    if (beta < -45) {
+    // Trigger Actions
+    if (isTiltDown && !gameState.actionLocked) {
         handleCorrect();
-    }
-    // Tilt up = Skip
-    else if (beta > 45) {
+        lockAction();
+    } else if (isTiltUp && !gameState.actionLocked) {
         handleSkip();
+        lockAction();
+    } else if (isNeutral) {
+        gameState.actionLocked = false;
     }
+}
+
+function lockAction() {
+    gameState.actionLocked = true;
+    setTimeout(() => {
+        // Failsafe in case they don't return to neutral
+        gameState.actionLocked = false;
+    }, 1500);
 }
 
 // ===== Game Actions =====
@@ -210,15 +312,22 @@ function handleCorrect() {
     gameState.currentCardIndex++;
 
     updateScore();
-    showFeedback('✓', 'correct');
+    showFeedback('Correct!', 'correct');
     vibrate(100);
 
-    // Debounce to prevent multiple triggers
+    // Transition
     gameState.isPlaying = false;
+
+    // Swipe animation
+    elements.currentCard.style.transition = 'transform 0.4s ease-in';
+    elements.currentCard.style.transform = 'translateY(100vh) rotate(-10deg)';
+
     setTimeout(() => {
         gameState.isPlaying = true;
+        elements.currentCard.style.transition = 'none';
+        elements.currentCard.style.transform = 'translateY(0) rotate(0)';
         showCard();
-    }, 800);
+    }, 400);
 }
 
 function handleSkip() {
@@ -228,15 +337,22 @@ function handleSkip() {
     gameState.results.push({ word, correct: false });
     gameState.currentCardIndex++;
 
-    showFeedback('→', 'skip');
-    vibrate(50);
+    showFeedback('Pass', 'skip');
+    vibrate([50, 50]);
 
-    // Debounce to prevent multiple triggers
+    // Transition
     gameState.isPlaying = false;
+
+    // Swipe animation
+    elements.currentCard.style.transition = 'transform 0.4s ease-in';
+    elements.currentCard.style.transform = 'translateY(-100vh) rotate(10deg)';
+
     setTimeout(() => {
         gameState.isPlaying = true;
+        elements.currentCard.style.transition = 'none';
+        elements.currentCard.style.transform = 'translateY(0) rotate(0)';
         showCard();
-    }, 800);
+    }, 400);
 }
 
 function updateScore() {
@@ -250,7 +366,7 @@ function showFeedback(text, type) {
 
     setTimeout(() => {
         elements.feedback.classList.remove('show');
-    }, 500);
+    }, 800);
 }
 
 // ===== End Game =====
@@ -258,15 +374,20 @@ function endGame() {
     gameState.isPlaying = false;
     clearInterval(gameState.timerInterval);
 
+    // Exit fullscreen
+    if (document.exitFullscreen) {
+        document.exitFullscreen().catch(e => console.log(e));
+    }
+
     // Update results screen
     elements.finalScore.textContent = gameState.score;
     elements.finalCategory.textContent = gameState.currentCategory.name;
 
     // Render results list
     elements.resultsList.innerHTML = gameState.results.map(result => `
-        <div class="result-item">
+        <div class="result-item ${result.correct ? 'correct' : 'skipped'}">
             <span class="result-word">${result.word}</span>
-            <span class="result-status">${result.correct ? '✓' : '→'}</span>
+            <span class="result-icon">${result.correct ? '✅' : '⛔'}</span>
         </div>
     `).join('');
 
@@ -275,9 +396,9 @@ function endGame() {
 }
 
 // ===== Utilities =====
-function vibrate(duration) {
+function vibrate(pattern) {
     if ('vibrate' in navigator) {
-        navigator.vibrate(duration);
+        navigator.vibrate(pattern);
     }
 }
 
