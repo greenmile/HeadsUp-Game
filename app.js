@@ -481,6 +481,18 @@ function endGame() {
     showScreen('results');
 }
 
+// ===== Global Actions =====
+window.forceStartGame = function () {
+    console.log('[HeadsUp] Force start triggered');
+    const overlay = document.getElementById('rotate-overlay');
+    if (overlay) overlay.classList.remove('active');
+
+    // Request fullscreen if possible
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(e => console.log(e));
+    }
+};
+
 // ===== Utilities =====
 function vibrate(pattern) {
     if ('vibrate' in navigator) {

@@ -22,14 +22,15 @@
 </head>
 
 <body>
-    <!-- Start Screen -->
-    <div id="start-screen" class="screen active">
-        <div class="hero">
-            <h1 class="logo">Heads Up!</h1>
-            <p class="tagline">Hold phone to forehead & guess the word</p>
-            <p class="version-tag">v1.2</p>
-        </div>
+    <!-- Fixed Header -->
+    <div class="hero">
+        <h1 class="logo">Heads Up!</h1>
+        <p class="tagline">Hold phone to forehead & guess the word</p>
+        <p class="version-tag">v1.3</p>
+    </div>
 
+    <!-- Start Screen (Categories Scroll Under Header) -->
+    <div id="start-screen" class="screen active">
         <div id="category-list" class="category-grid">
             <!-- Categories injected here -->
         </div>
@@ -94,7 +95,8 @@
         <p style="color: var(--text-secondary); margin-top: 1rem; margin-bottom: 2rem;">This game is designed to be
             played in landscape mode.
         </p>
-        <button id="force-start-btn" class="btn" style="font-size: 1rem; padding: 0.5rem 1rem; opacity: 0.8;">Force
+        <button id="force-start-btn" class="btn" style="font-size: 1rem; padding: 0.5rem 1rem; opacity: 0.8;"
+            onclick="forceStartGame()">Force
             Start (If Stuck)</button>
     </div>
 
