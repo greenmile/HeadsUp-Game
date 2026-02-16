@@ -221,7 +221,7 @@ function startGame(categoryId) {
 
     // Update UI
     updateScore();
-    showCard();
+    // showCard(); // Moved to beginGameplay
     showScreen('game');
 
     // Request full screen if available
@@ -229,20 +229,59 @@ function startGame(categoryId) {
         document.documentElement.requestFullscreen().catch(e => console.log(e));
     }
 
-    // Request device orientation permission on iOS
+    // iOS Permission Request (Must happen on user interaction)
     if (typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
             .then(permissionState => {
                 if (permissionState === 'granted') {
-                    startTimer();
+                    // Permission granted, will be used later
                 }
             })
             .catch(console.error);
-    } else {
-        startTimer();
     }
 
     WakeLockManager.request();
+
+    // Start with countdown
+    startCountdown();
+}
+
+function startCountdown() {
+    gameState.isPlaying = false; // Disable tilt
+    let count = 3;
+
+    // Show initial count
+    elements.cardWord.textContent = count;
+    elements.cardWord.style.fontSize = '8rem';
+    elements.currentCard.classList.add('countdown-mode');
+
+    const countdownInterval = setInterval(() => {
+        count--;
+
+        if (count > 0) {
+            elements.cardWord.textContent = count;
+            SoundManager.play('tick');
+            vibrate(50);
+        } else {
+            clearInterval(countdownInterval);
+            elements.currentCard.classList.remove('countdown-mode');
+            elements.cardWord.style.fontSize = ''; // Reset font size
+            beginGameplay();
+        }
+    }, 1000);
+}
+
+function beginGameplay() {
+    gameState.isPlaying = true;
+    showCard();
+
+    // Request device orientation permission on iOS (re-check or just start)
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        // Permission should have been requested in startGame, so we just start timer
+        startTimer();
+    } else {
+        startTimer();
+    }
 }
 
 // ===== Timer =====
