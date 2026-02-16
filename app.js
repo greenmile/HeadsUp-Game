@@ -604,16 +604,20 @@ const SoundManager = {
             osc.stop(now + 0.05);
         }
         else if (type === 'alarm') {
-            // Time's up buzzer
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(200, now);
-            osc.frequency.linearRampToValueAtTime(100, now + 0.5);
+            // Time's up chime (clean Bell sound)
+            osc.type = 'sine';
 
-            gain.gain.setValueAtTime(0.4, now);
-            gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+            // A clean bell tone around D5 (587.33Hz) > slight detune
+            osc.frequency.setValueAtTime(587.33, now);
+            osc.frequency.exponentialRampToValueAtTime(580, now + 1.2);
+
+            // Bell envelope: Fast attack -> Long decay
+            gain.gain.setValueAtTime(0.01, now);
+            gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
 
             osc.start(now);
-            osc.stop(now + 0.5);
+            osc.stop(now + 1.2);
         }
     }
 };
