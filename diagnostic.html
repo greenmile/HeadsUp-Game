@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeadsUp Diagnostic</title>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #ffffff;
+            font-family: monospace;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        h1 {
+            color: #00f3ff;
+        }
+
+        .success {
+            color: #10b981;
+        }
+
+        .error {
+            color: #ef4444;
+        }
+
+        .info {
+            color: #f59e0b;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        button {
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 Diagnostic Tool</h1>
+
+    <div class="card">
+        <h3>System Info</h3>
+        <div id="sys-info">Loading...</div>
+    </div>
+
+    <div class="card">
+        <h3>Data Check</h3>
+        <div id="data-check">Checking...</div>
+    </div>
+
+    <div class="card">
+        <h3>Orientation</h3>
+        <div id="orient-info">Waiting for events...</div>
+    </div>
+
+    <script src="data.js"></script>
+    <script>
+        const sysInfo = document.getElementById('sys-info');
+        const dataCheck = document.getElementById('data-check');
+        const orientInfo = document.getElementById('orient-info');
+
+        // 1. System Info
+        function updateSysInfo() {
+            sysInfo.innerHTML = `
+                Window: ${window.innerWidth} x ${window.innerHeight}<br>
+                Ratio: ${(window.innerWidth / window.innerHeight).toFixed(2)}<br>
+                Mode: ${window.innerWidth > window.innerHeight ? 'Landscape' : 'Portrait'}<br>
+                User Agent: ${navigator.userAgent}
+            `;
+        }
+        updateSysInfo();
+        window.addEventListener('resize', updateSysInfo);
+
+        // 2. Data Check
+        if (typeof GAME_DATA !== 'undefined' && GAME_DATA.categories) {
+            dataCheck.innerHTML = `
+                <div class="success">✅ GAME_DATA Loaded</div>
+                <div>Categories Found: ${GAME_DATA.categories.length}</div>
+                <ul>
+                    ${GAME_DATA.categories.map(c => `<li>${c.emoji} ${c.name}</li>`).join('')}
+                </ul>
+            `;
+        } else {
+            dataCheck.innerHTML = `
+                <div class="error">❌ GAME_DATA Failed to Load</div>
+                <div>Check network tab or sw.js cache.</div>
+            `;
+        }
+
+        // 3. Orientation
+        function handleOrientation(event) {
+            orientInfo.innerHTML = `
+                Alpha: ${event.alpha ? event.alpha.toFixed(1) : 'null'}<br>
+                Beta: ${event.beta ? event.beta.toFixed(1) : 'null'}<br>
+                Gamma: ${event.gamma ? event.gamma.toFixed(1) : 'null'}<br>
+                Last Event: ${new Date().toLocaleTimeString()}
+            `;
+        }
+
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', handleOrientation);
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                orientInfo.innerHTML += '<br><button onclick="requestPerm()">Request Permission</button>';
+            }
+        } else {
+            orientInfo.innerHTML = '<div class="error">❌ DeviceOrientation not supported</div>';
+        }
+
+        function requestPerm() {
+            DeviceOrientationEvent.requestPermission()
+                .then(state => {
+                    alert('Permission state: ' + state);
+                })
+                .catch(console.error);
+        }
+    </script>
+</body>
+
+</html>
