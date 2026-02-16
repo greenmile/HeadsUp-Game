@@ -65,6 +65,13 @@
     </div>
 
     <div class="card">
+        <h3>Vibration & Permissions</h3>
+        <div id="vib-info"></div>
+        <button onclick="testVibrate()">📳 Test Vibration (200ms)</button>
+        <button onclick="reqPerm()">🔒 Request Motion Access</button>
+    </div>
+
+    <div class="card">
         <h3>Orientation</h3>
         <div id="orient-info">Waiting for events...</div>
     </div>
@@ -122,12 +129,23 @@
             orientInfo.innerHTML = '<div class="error">❌ DeviceOrientation not supported</div>';
         }
 
-        function requestPerm() {
-            DeviceOrientationEvent.requestPermission()
-                .then(state => {
-                    alert('Permission state: ' + state);
-                })
-                .catch(console.error);
+        function testVibrate() {
+            if (navigator.vibrate) {
+                const result = navigator.vibrate(200);
+                document.getElementById('vib-info').innerHTML += `<div>Vibrate call success: ${result}</div>`;
+            } else {
+                document.getElementById('vib-info').innerHTML += `<div class="error">navigator.vibrate not supported</div>`;
+            }
+        }
+
+        function reqPerm() {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(state => alert('Permission state: ' + state))
+                    .catch(e => alert('Error: ' + e));
+            } else {
+                alert('DeviceOrientationEvent.requestPermission not found (Android doesn\'t need it)');
+            }
         }
     </script>
 </body>

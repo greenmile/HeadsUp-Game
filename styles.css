@@ -99,21 +99,19 @@ body {
     }
 }
 
-/* Hero Section - Sticky within Start Screen */
+/* Hero Section - Static / Standard Flow */
 .hero {
     text-align: center;
-    z-index: 100;
-    position: sticky;
-    top: 0;
-    left: 0;
+    z-index: 10;
+    position: relative;
+    /* Back to basics */
     width: 100%;
-    padding: 1rem 0;
+    padding: 2rem 0 1rem 0;
     margin-bottom: 2rem;
-    background: rgba(15, 23, 42, 0.95);
-    /* Opaque background to hide scrolling content */
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 .logo {
