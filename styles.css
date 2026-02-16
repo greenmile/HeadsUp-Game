@@ -109,6 +109,7 @@ body {
     text-align: center;
     margin-bottom: 3rem;
     z-index: 10;
+    position: relative;
 }
 
 .logo {
@@ -126,6 +127,14 @@ body {
 .tagline {
     font-size: 1.25rem;
     color: var(--text-secondary);
+    font-weight: 300;
+}
+
+.version-tag {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    opacity: 0.6;
     font-weight: 300;
 }
 

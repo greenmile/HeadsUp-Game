@@ -39,42 +39,81 @@ const elements = {
 
 // ===== Initialization =====
 function init() {
+    console.log('[HeadsUp] Initializing game...');
+
+    // Verify GAME_DATA is loaded
+    if (typeof GAME_DATA === 'undefined' || !GAME_DATA.categories) {
+        console.error('[HeadsUp] GAME_DATA not loaded!');
+        alert('Error: Game data failed to load. Please refresh the page.');
+        return;
+    }
+
+    console.log('[HeadsUp] GAME_DATA loaded:', GAME_DATA.categories.length, 'categories');
+
     renderCategories();
     setupEventListeners();
     registerServiceWorker();
     checkOrientation();
 
-    // Listen for orientation changes
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
+    // Listen for orientation changes with delay to allow layout to settle
+    window.addEventListener('resize', () => {
+        setTimeout(checkOrientation, 100); // Small delay for layout stabilization
+    });
+    window.addEventListener('orientationchange', () => {
+        setTimeout(checkOrientation, 100); // Small delay for API updates
+    });
+
+    console.log('[HeadsUp] Initialization complete');
 }
 
 // ===== Orientation Management =====
 function checkOrientation() {
     let isLandscape = false;
+    let detectionMethod = '';
 
-    // 1. Try window.orientation (Deprecated but reliable on many mobile devices)
+    // Primary method: Dimensions (Most reliable, especially for PWA)
+    const dimensionLandscape = window.innerWidth > window.innerHeight;
+
+    // Secondary method: Try window.orientation (Deprecated but sometimes useful)
+    let apiLandscape = null;
     if (typeof window.orientation !== 'undefined') {
-        isLandscape = Math.abs(window.orientation) === 90;
+        apiLandscape = Math.abs(window.orientation) === 90;
+        detectionMethod = 'window.orientation';
     }
-    // 2. Try Screen Orientation API
+    // Tertiary method: Screen Orientation API
     else if (screen.orientation && screen.orientation.type) {
-        isLandscape = screen.orientation.type.includes('landscape');
-    }
-    // 3. Fallback to dimensions
-    else {
-        isLandscape = window.innerWidth > window.innerHeight;
+        apiLandscape = screen.orientation.type.includes('landscape');
+        detectionMethod = 'screen.orientation';
     }
 
-    // Force dimension check for Android PWA if orientation API fails or is inconsistent
-    // (Common issue where orientation API says portrait but app is physically landscape)
-    if (!isLandscape && window.innerWidth > window.innerHeight) {
-        isLandscape = true;
+    // Decision logic: Prioritize dimensions, especially for PWA/standalone
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true;
+
+    if (isStandalone || apiLandscape === null) {
+        // In PWA mode or if API unavailable, always trust dimensions
+        isLandscape = dimensionLandscape;
+        detectionMethod = 'dimensions (PWA/standalone mode)';
+    } else if (dimensionLandscape === apiLandscape) {
+        // API and dimensions agree - use that value
+        isLandscape = dimensionLandscape;
+    } else {
+        // API and dimensions disagree - trust dimensions
+        isLandscape = dimensionLandscape;
+        detectionMethod += ' (overridden by dimensions)';
     }
 
     if (gameState.debugMode) {
-        elements.debugInfo.innerHTML += `<br>ChkOrient: ${isLandscape} (${window.innerWidth}x${window.innerHeight})`;
+        elements.debugInfo.innerHTML = `
+            Method: ${detectionMethod}<br>
+            Dimensions: ${window.innerWidth}x${window.innerHeight} → ${dimensionLandscape ? 'L' : 'P'}<br>
+            API: ${apiLandscape !== null ? (apiLandscape ? 'L' : 'P') : 'N/A'}<br>
+            Final: ${isLandscape ? 'Landscape' : 'Portrait'}<br>
+            Standalone: ${isStandalone}
+        `;
     }
+
+    console.log(`[Orientation] ${isLandscape ? 'Landscape' : 'Portrait'} (${detectionMethod})`);
 
     if (isLandscape) {
         elements.rotateOverlay.classList.remove('active');
@@ -85,13 +124,15 @@ function checkOrientation() {
 
 // ===== Render Categories =====
 function renderCategories() {
+    console.log('[HeadsUp] Rendering categories...');
     elements.categoryList.innerHTML = GAME_DATA.categories.map(cat => `
-        <div class="category-card" data-category-id="${cat.id}">
+        <div class="category-card glass" data-category-id="${cat.id}">
             <span class="category-emoji">${cat.emoji}</span>
             <div class="category-name">${cat.name}</div>
             <div class="category-count">${cat.cards.length} cards</div>
         </div>
     `).join('');
+    console.log('[HeadsUp] Categories rendered:', GAME_DATA.categories.length);
 }
 
 // ===== Event Listeners =====
