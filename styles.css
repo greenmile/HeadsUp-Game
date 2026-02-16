@@ -143,11 +143,15 @@ body {
 
 /* ===== Start Screen ===== */
 #start-screen {
-    display: block;
-    /* Standard flow (not flex) to prevent clipping */
+    /* display: block removed from here to allow hiding */
     padding-top: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+}
+
+#start-screen.active {
+    display: block;
+    /* Override default flex only when active */
 }
 
 /* ===== Categories Grid ===== */
