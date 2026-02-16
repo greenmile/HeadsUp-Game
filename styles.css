@@ -101,7 +101,8 @@ body {
 
 /* ===== Start Screen ===== */
 #start-screen {
-    justify-content: center;
+    justify-content: flex-start;
+    gap: 2rem;
     background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 100%);
 }
 
