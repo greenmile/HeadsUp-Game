@@ -4,7 +4,7 @@
     "description": "The ultimate charades-style guessing game. Hold your phone to your forehead and guess!",
     "start_url": "/",
     "display": "standalone",
-    "orientation": "portrait",
+    "orientation": "landscape",
     "background_color": "#0f172a",
     "theme_color": "#6366f1",
     "icons": [
