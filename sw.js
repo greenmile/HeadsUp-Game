@@ -1,4 +1,4 @@
-const CACHE_NAME = 'heads-up-v1';
+const CACHE_NAME = 'heads-up-neon-patch-1.0';
 const urlsToCache = [
     '/',
     '/index.html',

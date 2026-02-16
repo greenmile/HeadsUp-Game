@@ -9,7 +9,8 @@ let gameState = {
     timerInterval: null,
     results: [],
     debugMode: false,
-    actionLocked: false
+    actionLocked: false,
+    isGameOver: false
 };
 
 // ===== DOM Elements =====
@@ -52,15 +53,27 @@ function init() {
 function checkOrientation() {
     let isLandscape = false;
 
-    // Preferred: screen.orientation
-    if (screen.orientation && screen.orientation.type) {
-        isLandscape = screen.orientation.type.includes('landscape');
-    } else if (typeof window.orientation !== 'undefined') {
-        // Fallback: window.orientation (iOS/Older Android)
+    // 1. Try window.orientation (Deprecated but reliable on many mobile devices)
+    if (typeof window.orientation !== 'undefined') {
         isLandscape = Math.abs(window.orientation) === 90;
-    } else {
-        // Fallback: Dimensions
+    }
+    // 2. Try Screen Orientation API
+    else if (screen.orientation && screen.orientation.type) {
+        isLandscape = screen.orientation.type.includes('landscape');
+    }
+    // 3. Fallback to dimensions
+    else {
         isLandscape = window.innerWidth > window.innerHeight;
+    }
+
+    // Force dimension check for Android PWA if orientation API fails or is inconsistent
+    // (Common issue where orientation API says portrait but app is physically landscape)
+    if (!isLandscape && window.innerWidth > window.innerHeight) {
+        isLandscape = true;
+    }
+
+    if (gameState.debugMode) {
+        elements.debugInfo.innerHTML += `<br>ChkOrient: ${isLandscape} (${window.innerWidth}x${window.innerHeight})`;
     }
 
     if (isLandscape) {
@@ -146,7 +159,8 @@ function startGame(categoryId) {
         timerInterval: null,
         results: [],
         debugMode: gameState.debugMode,
-        actionLocked: false
+        actionLocked: false,
+        isGameOver: false
     };
 
     // Update UI
@@ -240,7 +254,7 @@ function adjustTextSize(word) {
 
 // ===== Tilt Detection (Landscape Logic) =====
 function handleTilt(event) {
-    if (!gameState.isPlaying) return;
+    if (!gameState.isPlaying || gameState.isGameOver) return;
 
     const gamma = event.gamma; // Left/Right (Standard Landscape: Neutral is +/-90)
     const beta = event.beta;   // Front/Back (Face Up/Down)
@@ -331,10 +345,12 @@ function handleCorrect() {
     elements.currentCard.style.transform = 'translateY(100vh) rotate(-10deg)';
 
     setTimeout(() => {
-        gameState.isPlaying = true;
-        elements.currentCard.style.transition = 'none';
-        elements.currentCard.style.transform = 'translateY(0) rotate(0)';
-        showCard();
+        if (!gameState.isGameOver) {
+            gameState.isPlaying = true;
+            elements.currentCard.style.transition = 'none';
+            elements.currentCard.style.transform = 'translateY(0) rotate(0)';
+            showCard();
+        }
     }, 400);
 }
 
@@ -356,10 +372,12 @@ function handleSkip() {
     elements.currentCard.style.transform = 'translateY(-100vh) rotate(10deg)';
 
     setTimeout(() => {
-        gameState.isPlaying = true;
-        elements.currentCard.style.transition = 'none';
-        elements.currentCard.style.transform = 'translateY(0) rotate(0)';
-        showCard();
+        if (!gameState.isGameOver) {
+            gameState.isPlaying = true;
+            elements.currentCard.style.transition = 'none';
+            elements.currentCard.style.transform = 'translateY(0) rotate(0)';
+            showCard();
+        }
     }, 400);
 }
 
@@ -380,6 +398,7 @@ function showFeedback(text, type) {
 // ===== End Game =====
 function endGame() {
     gameState.isPlaying = false;
+    gameState.isGameOver = true;
     clearInterval(gameState.timerInterval);
 
     // Exit fullscreen
@@ -398,6 +417,12 @@ function endGame() {
             <span class="result-icon">${result.correct ? '✅' : '⛔'}</span>
         </div>
     `).join('');
+
+    // Clear indicators
+    const tiltUp = document.querySelector('.tilt-up');
+    const tiltDown = document.querySelector('.tilt-down');
+    if (tiltUp) tiltUp.classList.remove('active');
+    if (tiltDown) tiltDown.classList.remove('active');
 
     vibrate(500);
     showScreen('results');
