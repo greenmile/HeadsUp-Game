@@ -292,6 +292,18 @@ body {
     text-align: center;
     line-height: 1.1;
     text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    word-break: break-word;
+    overflow-wrap: break-word;
+    width: 100%;
+    max-width: 100%;
+}
+
+.text-fit {
+    font-size: clamp(3rem, 10vw, 8rem) !important;
+}
+
+.text-long {
+    font-size: clamp(2rem, 6vw, 5rem) !important;
 }
 
 /* Tilt Indicators */
