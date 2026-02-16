@@ -63,6 +63,7 @@ function init() {
         setTimeout(checkOrientation, 100); // Small delay for API updates
     });
 
+    SoundManager.init(); // Initialize audio context
     console.log('[HeadsUp] Initialization complete');
 }
 
@@ -388,7 +389,8 @@ function handleCorrect() {
 
     updateScore();
     showFeedback('Correct!', 'correct');
-    vibrate(100);
+    vibrate(200); // Boosted
+    SoundManager.play('correct');
 
     // Transition
     gameState.isPlaying = false;
@@ -415,7 +417,8 @@ function handleSkip() {
     gameState.currentCardIndex++;
 
     showFeedback('Pass', 'skip');
-    vibrate([50, 50]);
+    vibrate([100, 50, 100]); // Boosted pattern
+    SoundManager.play('pass');
 
     // Transition
     gameState.isPlaying = false;
@@ -477,7 +480,8 @@ function endGame() {
     if (tiltUp) tiltUp.classList.remove('active');
     if (tiltDown) tiltDown.classList.remove('active');
 
-    vibrate(500);
+    vibrate(1000); // Long vibrate
+    SoundManager.play('alarm');
     showScreen('results');
 }
 
@@ -493,10 +497,95 @@ window.forceStartGame = function () {
     }
 };
 
+// ===== Sound Management =====
+const SoundManager = {
+    ctx: null,
+
+    init() {
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    },
+
+    resume() {
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    },
+
+    play(type) {
+        if (!this.ctx) this.init();
+        this.resume();
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        const now = this.ctx.currentTime;
+
+        if (type === 'correct') {
+            // High pitch "Ding!"
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.exponentialRampToValueAtTime(400, now + 0.3);
+
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+        else if (type === 'pass') {
+            // Low pitch "Bup"
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+            osc.start(now);
+            osc.stop(now + 0.2);
+        }
+        else if (type === 'tick') {
+            // Woodblock tick
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, now);
+
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+            osc.start(now);
+            osc.stop(now + 0.05);
+        }
+        else if (type === 'alarm') {
+            // Time's up buzzer
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, now);
+            osc.frequency.linearRampToValueAtTime(100, now + 0.5);
+
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+
+            osc.start(now);
+            osc.stop(now + 0.5);
+        }
+    }
+};
+
 // ===== Utilities =====
 function vibrate(pattern) {
-    if ('vibrate' in navigator) {
-        navigator.vibrate(pattern);
+    // Log for debugging
+    console.log('[HeadsUp] Vibrate:', pattern);
+
+    // Safety check
+    if (typeof navigator.vibrate === 'function') {
+        try {
+            navigator.vibrate(pattern);
+        } catch (e) {
+            console.warn('[HeadsUp] Vibration failed:', e);
+        }
     }
 }
 
