@@ -8,7 +8,8 @@ let gameState = {
     isPlaying: false,
     timerInterval: null,
     results: [],
-    debugMode: false
+    debugMode: false,
+    actionLocked: false
 };
 
 // ===== DOM Elements =====
@@ -64,15 +65,149 @@ function checkOrientation() {
 
     if (isLandscape) {
         elements.rotateOverlay.classList.remove('active');
-        if (gameState.isPlaying && gameState.timeLeft > 0) {
-            // Resume if paused (logic to be added if needed)
-        }
     } else {
         elements.rotateOverlay.classList.add('active');
     }
 }
 
-// ... existing code ...
+// ===== Render Categories =====
+function renderCategories() {
+    elements.categoryList.innerHTML = GAME_DATA.categories.map(cat => `
+        <div class="category-card" data-category-id="${cat.id}">
+            <span class="category-emoji">${cat.emoji}</span>
+            <div class="category-name">${cat.name}</div>
+            <div class="category-count">${cat.cards.length} cards</div>
+        </div>
+    `).join('');
+}
+
+// ===== Event Listeners =====
+function setupEventListeners() {
+    // Category selection
+    elements.categoryList.addEventListener('click', (e) => {
+        const card = e.target.closest('.category-card');
+        if (card) {
+            const categoryId = parseInt(card.dataset.categoryId);
+            startGame(categoryId);
+        }
+    });
+
+    // Results buttons
+    elements.playAgain.addEventListener('click', () => {
+        if (gameState.currentCategory) {
+            startGame(gameState.currentCategory.id);
+        }
+    });
+
+    elements.changeCategory.addEventListener('click', () => {
+        showScreen('start');
+    });
+
+    // Debug toggle (Triple tap score)
+    let tapCount = 0;
+    let tapTimer;
+    elements.score.addEventListener('click', () => {
+        tapCount++;
+        clearTimeout(tapTimer);
+        tapTimer = setTimeout(() => tapCount = 0, 500);
+
+        if (tapCount === 3) {
+            gameState.debugMode = !gameState.debugMode;
+            elements.debugInfo.style.display = gameState.debugMode ? 'block' : 'none';
+            tapCount = 0;
+        }
+    });
+
+    // Device orientation for tilt detection
+    if (window.DeviceOrientationEvent) {
+        window.addEventListener('deviceorientation', handleTilt);
+    }
+}
+
+// ===== Screen Management =====
+function showScreen(screenName) {
+    Object.values(screens).forEach(screen => screen.classList.remove('active'));
+    screens[screenName].classList.add('active');
+}
+
+// ===== Start Game =====
+function startGame(categoryId) {
+    const category = getCategoryById(categoryId);
+    if (!category) return;
+
+    // Reset game state
+    gameState = {
+        currentCategory: category,
+        cards: getShuffledCards(categoryId),
+        currentCardIndex: 0,
+        score: 0,
+        timeLeft: 60,
+        isPlaying: true,
+        timerInterval: null,
+        results: [],
+        debugMode: gameState.debugMode,
+        actionLocked: false
+    };
+
+    // Update UI
+    updateScore();
+    showCard();
+    showScreen('game');
+
+    // Request full screen if available
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(e => console.log(e));
+    }
+
+    // Request device orientation permission on iOS
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+            .then(permissionState => {
+                if (permissionState === 'granted') {
+                    startTimer();
+                }
+            })
+            .catch(console.error);
+    } else {
+        startTimer();
+    }
+}
+
+// ===== Timer =====
+function startTimer() {
+    elements.timer.textContent = gameState.timeLeft;
+    updateTimerProgress();
+
+    gameState.timerInterval = setInterval(() => {
+        if (document.hidden || elements.rotateOverlay.classList.contains('active')) {
+            return; // Don't count down if backgrounded or wrong orientation
+        }
+
+        gameState.timeLeft--;
+        elements.timer.textContent = gameState.timeLeft;
+        updateTimerProgress();
+
+        // Timer warnings
+        if (gameState.timeLeft === 10) {
+            elements.timer.classList.add('warning');
+            vibrate(200);
+        } else if (gameState.timeLeft === 5) {
+            elements.timer.classList.remove('warning');
+            elements.timer.classList.add('danger');
+            vibrate(300);
+        }
+
+        // Game over
+        if (gameState.timeLeft <= 0) {
+            endGame();
+        }
+    }, 1000);
+}
+
+function updateTimerProgress() {
+    const percentage = (gameState.timeLeft / 60) * 100;
+    elements.timerProgress.style.width = `${percentage}%`;
+}
 
 // ===== Card Display =====
 function showCard() {
@@ -125,18 +260,7 @@ function handleTilt(event) {
     // Tilt Down (Correct): Screen -> Floor. Gamma -> 0. Beta -> 180 (or -180)
     // Tilt Up (Pass): Screen -> Ceiling. Gamma -> 0. Beta -> 0
 
-    const TILT_THRESHOLD = 50; // Threshold for Gamma deviation from 90 (Trigger zone)
-    // i.e., at Neutral, Abs(Gamma) is 90. 
-    // Trigger when Abs(Gamma) < (90 - 50) = 40.
-
-    // Check if we have titled "flat" (Screen looking up or down)
-    // Ideally Gamma drops close to 0 when flat in landscape
     const isTriggerZone = Math.abs(gamma) < 60; // Wide trigger zone
-
-    // Distinguish Up vs Down using Beta
-    // Face Up (Pass): Beta is near 0
-    // Face Down (Correct): Beta is near 180 (or -180)
-
     const isFaceDown = Math.abs(beta) > 90;
     const isFaceUp = Math.abs(beta) < 90;
 
@@ -172,7 +296,6 @@ function handleTilt(event) {
         }
     } else {
         // Unlock if we return to Neutral
-        // Neutral is when Gamma is high (near 90)
         const isNeutral = Math.abs(gamma) > 70;
         if (isNeutral) {
             gameState.actionLocked = false;
@@ -183,7 +306,6 @@ function handleTilt(event) {
 function lockAction() {
     gameState.actionLocked = true;
     setTimeout(() => {
-        // Failsafe in case they don't return to neutral
         gameState.actionLocked = false;
     }, 1500);
 }
