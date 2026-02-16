@@ -99,25 +99,25 @@ body {
     }
 }
 
-/* Hero Section - Fixed to top */
+/* Hero Section - Sticky within Start Screen */
 .hero {
     text-align: center;
-    z-index: 1000;
-    position: fixed;
+    z-index: 100;
+    position: sticky;
     top: 0;
     left: 0;
     width: 100%;
     padding: 1rem 0;
-    background: rgba(15, 23, 42, 0.9);
-    /* Slight background to ensure text readability */
+    margin-bottom: 2rem;
+    background: rgba(15, 23, 42, 0.95);
+    /* Opaque background to hide scrolling content */
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .logo {
-    font-size: 3rem;
-    /* Slightly smaller for fixed header */
+    font-size: 3.5rem;
     font-weight: 900;
     letter-spacing: -2px;
     background: linear-gradient(to right, var(--neon-blue), var(--neon-purple));
@@ -145,12 +145,11 @@ body {
 
 /* ===== Start Screen ===== */
 #start-screen {
-    justify-content: flex-start;
-    gap: 2rem;
-    background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 100%);
-    padding-top: 180px;
-    /* Space for fixed header */
-    min-height: 100vh;
+    display: block;
+    /* Standard flow (not flex) to prevent clipping */
+    padding-top: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* ===== Categories Grid ===== */
