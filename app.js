@@ -176,6 +176,18 @@ function setupEventListeners() {
     if (window.DeviceOrientationEvent) {
         window.addEventListener('deviceorientation', handleTilt);
     }
+
+    // Force Start Button (Emergency Bypass)
+    const forceStartBtn = document.getElementById('force-start-btn');
+    if (forceStartBtn) {
+        forceStartBtn.addEventListener('click', () => {
+            elements.rotateOverlay.classList.remove('active');
+            // Request fullscreen if possible to help orientation
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(e => console.log(e));
+            }
+        });
+    }
 }
 
 // ===== Screen Management =====

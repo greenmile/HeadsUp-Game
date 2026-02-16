@@ -106,11 +106,16 @@ body {
     background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 100%);
 }
 
+/* Hero Section - Forced to top for Android visibility */
 .hero {
     text-align: center;
-    margin-bottom: 3rem;
-    z-index: 10;
+    margin-bottom: 2rem;
+    z-index: 999;
     position: relative;
+    width: 100%;
+    padding-top: 1rem;
+    background: transparent;
+    /* Ensure no background obscures it */
 }
 
 .logo {
