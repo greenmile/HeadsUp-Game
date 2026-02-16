@@ -63,6 +63,8 @@ function init() {
         setTimeout(checkOrientation, 100); // Small delay for API updates
     });
 
+    WakeLockManager.init();
+
     SoundManager.init(); // Initialize audio context
     console.log('[HeadsUp] Initialization complete');
 }
@@ -239,6 +241,8 @@ function startGame(categoryId) {
     } else {
         startTimer();
     }
+
+    WakeLockManager.request();
 }
 
 // ===== Timer =====
@@ -482,6 +486,7 @@ function endGame() {
 
     vibrate(1000); // Long vibrate
     SoundManager.play('alarm');
+    WakeLockManager.release();
     showScreen('results');
 }
 
